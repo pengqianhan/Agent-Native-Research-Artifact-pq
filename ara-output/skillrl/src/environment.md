@@ -1,0 +1,39 @@
+# Environment
+
+- **Python**: Not pinned in `requirements.txt`; `pyproject.toml` declares `requires-python = ">=3.8"`. The released code uses async/await idioms compatible with 3.10+.
+- **Framework**: PyTorch (via `transformers==4.51.1` + verl-agent fork of `verl`); FSDP for actor sharding; vLLM 0.11.0 (per README install instructions, with optional 0.7 / 0.8 docs) for rollout inference.
+- **Hardware**: Cluster with `8 NVIDIA H100 80GB GPUs` (Appendix B.2). Released ALFWorld script targets `n_gpus_per_node=4` with `tensor_model_parallel_size=4`; WebShop script targets `n_gpus_per_node=8`.
+- **Wall-clock per experiment**: ≈30 hours total per Appendix B.2:
+  - Trajectory collection: 3 hours
+  - Skill distillation: 0.5 hours
+  - Cold-start SFT: 2 hours
+  - RL training: 24 hours
+- **Key dependencies** (from `requirements.txt` plus README install instructions):
+  - `transformers==4.51.1`
+  - `vllm==0.11.0` (README; `pyproject.toml` references `vllm==0.8.4` but the README install command pins `0.11.0`)
+  - `flash-attn==2.7.4.post1`
+  - `tensordict<=0.6.2`
+  - `ray[default]`
+  - `hydra-core`
+  - `accelerate`, `datasets`, `peft`, `liger-kernel`, `pandas`, `numpy`, `pyarrow>=19.0.0`, `torchdata`, `wandb`
+  - `qwen-vl-utils[decord]`
+  - `openai` (for the Azure OpenAI o3 teacher, installed separately)
+  - `sentence-transformers` (only when using embedding-mode retrieval)
+  - `alfworld`, `gymnasium==0.29.1`, `stable-baselines3==2.6.0` (ALFWorld env)
+  - `gym==0.26.2` (Search env)
+- **External services**: Azure OpenAI (deployment of `o3`); requires `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` env vars (per `agent_system/memory/skill_updater.py`). Optional `AZURE_OPENAI_API_VERSION` (default `2025-01-01-preview`).
+- **Pre-trained checkpoints** (HuggingFace, released by authors):
+  - `Jianwen/Alfworld-7B-SFT`, `Jianwen/Alfworld-7B-RL`
+  - `Jianwen/Webshop-7B-SFT`, `Jianwen/Webshop-7B-RL`
+  - `Jianwen/Search-7B-SFT`, `Jianwen/Search-7B-RL`
+  - `Jianwen/SkillRL-SFT-Data` (cold-start SFT dataset, released 2026-04-03)
+- **Embedding model**: `Qwen/Qwen3-Embedding-0.6B` (downloaded from HF on first embedding-mode call; ~600M parameters).
+- **Random seeds**: `env.seed=0` (released training scripts). The paper does not report multi-seed experiments. No explicit `torch.manual_seed` is set in the released main training entrypoint snippets we read.
+- **Inference / training switches** in released ALFWorld script:
+  - `VLLM_ATTENTION_BACKEND=FLASH_ATTN`
+  - `actor_rollout_ref.rollout.gpu_memory_utilization=0.5`
+  - `actor_rollout_ref.rollout.enable_chunked_prefill=True`
+  - `actor_rollout_ref.rollout.enforce_eager=False`
+  - `actor_rollout_ref.rollout.max_num_batched_tokens=8192`
+  - `actor_rollout_ref.rollout.max_num_seqs=512`
+- **Validation eval sampling**: `actor_rollout_ref.rollout.val_kwargs.temperature=0.4`, `do_sample=True`.

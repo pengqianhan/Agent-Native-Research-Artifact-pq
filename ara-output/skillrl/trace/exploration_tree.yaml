@@ -1,0 +1,160 @@
+tree:
+  - id: N01
+    type: question
+    support_level: explicit
+    source_refs: ["§1 Introduction", "§5 Related Work — Memory Mechanisms"]
+    title: "How can LLM agents efficiently learn from experience and transfer that knowledge to other tasks?"
+    description: |
+      Central research question driving the paper. Existing memory-based methods
+      store raw trajectories, which are token-heavy and noisy. The team's working
+      hypothesis is that abstraction (skills) — not just retrieval — is the
+      load-bearing operation for transfer.
+    children:
+      - id: N02
+        type: hypothesis
+        support_level: explicit
+        source_refs: ["§1 Introduction", "Figure 1(a)"]
+        title: "Skill abstraction beats raw-trajectory memory"
+        description: |
+          Compact, reusable strategies derived from successful and failed
+          trajectories will provide better experience transfer than retrieval
+          over raw trajectories.
+        also_depends_on: []
+        children:
+          - id: N03
+            type: experiment
+            support_level: explicit
+            source_refs: ["Table 1"]
+            title: "E01 — Main results on ALFWorld and WebShop"
+            description: |
+              Evaluate Qwen2.5-7B + SkillRL against closed-source LLMs (GPT-4o,
+              Gemini-2.5-Pro), prompt/memory baselines (ReAct, Reflexion, Mem0,
+              ExpeL, MemP, SimpleMem), RL methods (RLOO, GRPO), and
+              memory-augmented RL (MemRL, EvolveR, Mem0+GRPO, SimpleMem+GRPO).
+              SkillRL: ALFWorld 89.9 / WebShop 85.2 score, 72.7 succ.
+          - id: N04
+            type: experiment
+            support_level: explicit
+            source_refs: ["Table 2"]
+            title: "E02 — Search-augmented QA"
+            description: |
+              Train on NQ + HotpotQA; evaluate on seven QA datasets.
+              SkillRL avg = 47.1, beating Search-R1 (38.5) and EvolveR (43.1);
+              +19.4 absolute on Bamboogle vs EvolveR.
+          - id: N05
+            type: experiment
+            support_level: explicit
+            source_refs: ["Table 3"]
+            title: "E03 — Component ablation"
+            description: |
+              "w/o Hierarchical Structure" 76.8 / 61.4; "w/o Skill Library
+              (Raw Trajectories)" 61.7 / 50.2; "w/o Cold-Start SFT" 65.2 /
+              46.5; "w/o Dynamic Evolution" 84.4 / 70.3; full SkillRL
+              89.9 / 72.7.
+            children:
+              - id: N06
+                type: dead_end
+                support_level: explicit
+                source_refs: ["Table 3 row 'w/o Skill Library (Raw Trajectories)'"]
+                title: "Direct raw-trajectory replacement of the skill library underperforms"
+                description: |
+                  Replacing the distilled skill library with raw trajectory
+                  snippets caused the largest single ablation drop
+                  (≈25%+ on both ALFWorld and WebShop). Confirms abstraction
+                  is the load-bearing operation, not retrieval.
+              - id: N07
+                type: dead_end
+                support_level: explicit
+                source_refs: ["Table 3 row 'w/o Cold-Start SFT'"]
+                title: "Skipping cold-start SFT before RL costs ~25 absolute success"
+                description: |
+                  Bypassing the SFT stage that teaches skill utilization
+                  drops ALFWorld from 89.9→65.2 and WebShop from
+                  72.7→46.5. Provides direct support for the cold-start
+                  design decision.
+              - id: N08
+                type: dead_end
+                support_level: explicit
+                source_refs: ["Table 3 row 'w/o Hierarchical Structure'"]
+                title: "Removing task-specific skills (general-only) costs 11–13 points"
+                description: |
+                  Demonstrates that universal heuristics alone are not enough —
+                  category-specific procedures are required.
+      - id: N09
+        type: decision
+        support_level: explicit
+        source_refs: ["§3.1 'Experience-based Skill Distillation'", "Eqs. (2), (3)"]
+        title: "Distill successes and failures asymmetrically"
+        description: |
+          Decision to use M_T(τ⁺, d) for successes (strategic patterns) and
+          M_T(τ⁻, d) for failures (4-component counterfactual: failure point,
+          flawed reasoning, what should have been done, generalizable
+          principle). Direct context inclusion of τ⁻ rejected as infeasible.
+      - id: N10
+        type: decision
+        support_level: explicit
+        source_refs: ["§3.2 'Hierarchical Skill Library Construction'", "Eq. (4)"]
+        title: "Two-level skill library: general + per-category"
+        description: |
+          Decision to partition the bank into S_g (always-included universal
+          principles) and S_k (per-category specialised heuristics) retrieved
+          by similarity threshold δ + top-K.
+      - id: N11
+        type: decision
+        support_level: explicit
+        source_refs: ["§3.3 'Recursive Skill Evolution'", "Eq. (7)"]
+        title: "Co-evolve skill library with policy via RL validation failures"
+        description: |
+          At every validation epoch, for each category C with Acc(C) < δ,
+          synthesise S_new = M_T(T_val, SkillBank). Triggered per-category to
+          avoid global rewriting; capped at max_new_skills_per_update = 3.
+        children:
+          - id: N12
+            type: experiment
+            support_level: explicit
+            source_refs: ["Figure 5", "§4.3 'Evolution Dynamics'"]
+            title: "E05 — Effect of skill evolution on convergence"
+            description: |
+              SkillRL with evolution reaches >80% ALFWorld validation success
+              within ~60 training steps; without evolution requires ~90 steps
+              and reaches a lower peak.
+          - id: N13
+            type: experiment
+            support_level: explicit
+            source_refs: ["Figure 3", "§4.3 'Skill Library Growth'"]
+            title: "E06 — Skill library growth (55 → 100)"
+            description: |
+              Initial library: 55 skills (12 general + 43 task-specific).
+              Final at step 150: ~100 skills (≈20 general + ≈80 task-specific).
+              Growth is balanced across categories, predominantly task-specific.
+      - id: N14
+        type: decision
+        support_level: explicit
+        source_refs: ["§3.3 'Cold-Start Initialization'", "Eq. (6)"]
+        title: "Cold-start SFT before RL"
+        description: |
+          Decision to fine-tune base model on teacher-generated
+          skill-augmented reasoning traces D_SFT before RL. Resulting
+          π_θ_sft serves as both warm-start and KL reference π_ref. Motivated
+          by Guo et al., 2025 — "Simply providing skills to an unchanged
+          model yields limited benefit".
+        also_depends_on:
+          - N07
+      - id: N15
+        type: experiment
+        support_level: explicit
+        source_refs: ["Figure 4", "§4.3 'Context Efficiency'"]
+        title: "E04 — Context efficiency vs raw memory"
+        description: |
+          SkillRL average prompt < 1,300 tokens vs ~1,450 for raw memory
+          baseline (≈10.3% reduction) while achieving higher success.
+      - id: N16
+        type: hypothesis
+        support_level: inferred
+        title: "Distilled skills are LLM-quality-limited"
+        description: |
+          Inferred from the paper's reliance on a frontier teacher (o3) for
+          both initial distillation and recursive evolution. Skill quality
+          plausibly bounded by the teacher's reasoning ability. The paper
+          does not test cheaper teachers, so this is a reconstruction note,
+          not a literal experiment.
