@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-3%20skills-green)](skills/)
 [![arXiv](https://img.shields.io/badge/arXiv-2604.24658-b31b1b.svg)](https://arxiv.org/abs/2604.24658)
+[![Poster](https://img.shields.io/badge/Poster-PDF-orange.svg)](docs/poster.pdf)
 
 > A protocol that recasts the primary research object from narrative document to **machine-executable knowledge package** — so AI agents can navigate, reproduce, and extend published research without re-discovering every dead end.
 
@@ -133,55 +134,12 @@ See [skills/rigor-reviewer/SKILL.md](skills/rigor-reviewer/SKILL.md) for the ful
 ## Install
 
 ```bash
-npx @orchestra-research/ara-skills
+npx @ara-commons/ara-skills
 ```
 
 Auto-detects Claude Code, Cursor, Gemini CLI, OpenCode, Codex, and Hermes, then prompts for skills, agents, and install scope (global vs. local).
 
-### Non-interactive
-
-```bash
-# All three skills, every detected agent, user-level
-npx @orchestra-research/ara-skills install --all
-
-# One skill, one agent
-npx @orchestra-research/ara-skills install --skill compiler --agent claude-code
-
-# Into the current project (.claude/skills, .cursor/skills, …) instead of $HOME
-npx @orchestra-research/ara-skills install --all --local
-
-# List / update / remove
-npx @orchestra-research/ara-skills list
-npx @orchestra-research/ara-skills update
-npx @orchestra-research/ara-skills uninstall --skill rigor-reviewer
-```
-
 Full CLI reference: [`packages/ara-skills/`](packages/ara-skills/).
-
-### Manual install (Claude Code)
-
-```bash
-# All skills — project-level
-cp -r skills/* .claude/skills/
-
-# All skills — user-level (available in all projects)
-cp -r skills/* ~/.claude/skills/
-
-# Single skill
-cp -r skills/compiler ~/.claude/skills/compiler
-```
-
----
-
-## Examples
-
-| Artifact | Source | Description |
-|----------|--------|-------------|
-| [ResNet ARA](examples/resnet-ara-example/) | Paper + code | Deep residual networks — canonical CV paper |
-| [Scientific Reasoning ARA](ara-output/sci-reasoning/) | Paper | LLM research ideation patterns |
-| [ANDES QoE ARA](ara-output/andes-qoe/) | Paper | LLM inference quality-of-experience |
-
-See [examples/resnet-walkthrough.md](examples/resnet-walkthrough.md) for a step-by-step guide.
 
 ---
 
@@ -203,8 +161,8 @@ If you use ARA in your research, please cite:
 
 ```bibtex
 @article{ara2026,
-  title        = {Agent-Native Research Artifact},
-  author       = {Orchestra Research},
+  title        = {The Last Human-Written Paper: Agent-Native Research Artifacts},
+  author       = {Liu, Jiachen and Pei, Jiaxin and Huang, Jintao and Si, Chenglei and Qu, Ao and Tang, Xiangru and Lu, Runyu and Chen, Lichang and Bai, Xiaoyan and Zheng, Haizhong and Chen, Carl and Chen, Zhiyang and Ye, Haojie and Fu, Yujuan and He, Zexue and Jin, Zijian and Zhang, Zhenyu and Sun, Shangquan and Harmon, Maestro and Wang, John Dianzhuo and Zeng, Jianqiao and Sun, Jiachen and Wu, Mingyuan and Zhou, Baoyu and You, Chenyu and Lu, Shijian and Qiu, Yiming and Lai, Fan and Yuan, Yuan and Li, Yao and Hong, Junyuan and Zhu, Ruihao and Chen, Beidi and Pentland, Alex and Chen, Ang and Chowdhury, Mosharaf and Zhang, Zechen},
   year         = {2026},
   eprint       = {2604.24658},
   archivePrefix= {arXiv},

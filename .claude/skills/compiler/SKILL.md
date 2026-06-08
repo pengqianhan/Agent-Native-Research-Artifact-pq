@@ -12,7 +12,11 @@ description: |
 argument-hint: "[any input — paths, URLs, descriptions, or nothing]"
 allowed-tools: Read, Write, Edit, Bash(python *|git clone *|ls *|mkdir *), Glob, Grep, Task
 metadata:
+<<<<<<< HEAD
   author: Orchestra-Research
+=======
+  author: ara-commons
+>>>>>>> main
   category: research-tooling
   version: "1.0.0"
   tags: [research, compilation, artifacts, knowledge-extraction]
