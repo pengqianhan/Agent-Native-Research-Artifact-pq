@@ -1,53 +1,96 @@
-# Agent-Native Research Artifact (ARA)
+# 🔬 ARA (Agent-Native Research Artifact)
+### The Essential Toolkit to Supercharge Your Autoresearch
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-3%20skills-green)](skills/)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-6%20skills-green)](skills/)
 [![arXiv](https://img.shields.io/badge/arXiv-2604.24658-b31b1b.svg)](https://arxiv.org/abs/2604.24658)
 [![Poster](https://img.shields.io/badge/Poster-PDF-orange.svg)](docs/poster.pdf)
+[![Demo](https://img.shields.io/badge/Demo-ARA--Demo-purple.svg)](https://github.com/ARA-Labs/ARA-Demo)
 
-> A protocol that recasts the primary research object from narrative document to **machine-executable knowledge package** — so AI agents can navigate, reproduce, and extend published research without re-discovering every dead end.
+
+> **Autoresearch is blindingly fast, but fundamentally unobservable.**
+> When AI agents run experiments, they leave behind a graveyard of overwritten code, scattered logs, and undocumented dead ends. ARA is the essential toolkit that forces your AI scientists to work in a **structured, verifiable, and traceable** format—so you can actually trust the science they produce without reverse-engineering thousands of lines of terminal output.
 
 <p align="center">
-  <img src="docs/figures/fig_legacy_vs_ara_v6.png" alt="Legacy PDF vs ARA" width="100%"/>
+  <img src="docs/ara-skills-demo.gif" alt="ARA Skills Demo" width="100%"/>
 </p>
-
-*Publishing compiles a rich research object into a lossy narrative (left); ARA preserves the original as a high-fidelity, machine-executable knowledge package (right).*
 
 ---
 
-## The Problem
+## Core Design Principles
 
-Research produces a branching knowledge object — months of hypotheses tested and rejected, implementation tricks discovered through trial and error, design alternatives weighed. Publishing compiles this into a linear narrative, discarding everything that doesn't fit the final story.
-
-This was tolerable when every consumer was human. It is not when AI agents routinely read papers to reproduce experiments and extend published methods.
+Instead of leading with layers, the bundle maps directly to how it solves the bottleneck through three core design principles:
 
 <p align="center">
-  <img src="docs/figures/fig_info_gap.png" alt="Reproduction information gap" width="90%"/>
+  <img src="docs/figures/fig_three_principles.png" alt="The three core design principles: Guardrailing & Verification, Crystallizing Insights, and Total Observability" width="100%"/>
 </p>
 
-**The numbers:**
-- Only **45.4%** of 8,921 reproduction requirements from 23 ICML 2024 papers are fully specified in their PDFs ([PaperBench](https://openai.com/index/paperbench/))
-- Failed agent runs account for **90.2%** of total dollar cost across 24,008 runs on RE-Bench — agents without prior failure records rediscover every dead end independently
+### 🛡️ Guardrailing & Verification
+
+AI agents require precise constraint boundaries to prevent hallucinated conclusions. The system acts as a strict **epistemic anchor**, automatically applying formal verification principles to ensure every scientific claim is directly wired to ground-truth execution and falsifiable results.
+
+### 🧠 Crystallizing Insights
+
+Research is rarely a straight line; it is a messy graph of pivots and dead ends. The system forces AI scientists to systematically document their trajectory, crystallizing fleeting, unstructured logs into highly structured, reliable research knowledge that builds compounding value over time.
+
+### 👁️ Total Observability
+
+Supervising AI scientists shouldn't require reading endless terminal outputs. The system translates complex agent behaviors and exploration graphs into a clean, minimalist interface. It lets human researchers maintain high-level oversight, seamlessly stepping in to course-correct or guide the AI's behavior with zero friction.
+
+<a id="quickstart"></a>
+## 🛠️ The Toolkit: Six Core Skills
+
+To operationalize these design principles, ARA provides a suite of six specialized agent skills. You can install the toolkit via:
+
+```bash
+npx @ara-commons/ara-skills
+```
+
+Auto-detects Claude Code, Cursor, Gemini CLI, OpenCode, Codex, and Hermes, then prompts for skills, agents, and install scope (global vs. local). Full CLI reference: [`packages/ara-skills/`](packages/ara-skills/).
+
+Then reach for a skill by what you need:
+
+| If you want to… | Skill | Invoke |
+|---|---|---|
+| **Capture** research faithfully as you work — decisions, ablations, dead ends, configs | **research-manager** | `/research-manager` (or wire it to run automatically) |
+| **Compile** an existing paper, repo, or notes into a structured ARA | **compiler** | `/compiler <path>` |
+| **Verify** an artifact's epistemic rigor before you trust, publish, or submit it | **rigor-reviewer** | `/rigor-reviewer <dir>` |
+| **Observe** the full research trajectory in an interactive process map | **research-visualizer** | `/research-visualizer <ara-dir>` |
+| **Ask** an ARA anything — grounded, falsifiable answers to "what should I try next / why did this work / what if I change X" ([demo](https://www.agenticresearch.sh/blog/research-world-model)) | **research-foresight** | `/research-foresight <ara-dir> "<question>"` |
+| **Submit** an ARA — validate/compile it, visualize it, publish it to your GitHub, and list it on the ARA Hub | **submit-ara** | `/submit-ara <dir>` |
+
+**Make capture automatic.** Append this to your agent's system-prompt file (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, or `GEMINI.md`) so the record fills itself in every session:
+
+```markdown
+## ARA: end-of-session research capture
+At the END of every coding session, invoke the `/research-manager` skill to
+record decisions, experiments, dead ends, and claims into the `ara/` artifact.
+```
+
+See each skill's `SKILL.md` for the full specification:
+[research-manager](skills/research-manager/SKILL.md) ·
+[compiler](skills/compiler/SKILL.md) ·
+[rigor-reviewer](skills/rigor-reviewer/SKILL.md) ·
+[research-visualizer](skills/research-visualizer/SKILL.md) ·
+[research-foresight](skills/research-foresight/SKILL.md) ·
+[submit-ara](skills/submit-ara/SKILL.md)
 
 ---
 
-## What is ARA?
+## Under the hood — the artifact anatomy
 
-ARA organizes research into four interlocking layers:
+The four pillars all read and write one structure. An ARA organizes research into four interlocking layers:
 
 ```
-artifact/
+example_artifact/
   PAPER.md                    # Root manifest + layer index (~200 tokens)
   logic/                      # Cognitive layer — What & Why
-    problem.md                #   Observations → gaps → key insight
     claims.md                 #   Falsifiable assertions with proof refs
-    concepts.md               #   Formal definitions
     experiments.md            #   Declarative experiment plans
     solution/
       architecture.md         #   System design + component graph
       algorithm.md            #   Math + pseudocode
       constraints.md          #   Boundary conditions
-      heuristics.md           #   Implementation tricks + rationale
     related_work.md           #   Typed dependency graph
   src/                        # Physical layer — How
     configs/                  #   Hyperparameters with rationale
@@ -63,83 +106,24 @@ artifact/
   <img src="docs/figures/fig_cross_layer_v2_attempt1.png" alt="Cross-layer bindings" width="90%"/>
 </p>
 
-*Cross-layer forensic bindings thread claims in `/logic` to code in `/src` and evidence in `/evidence`. Dead-end nodes (×) in the exploration graph preserve failure modes.*
+*Cross-layer forensic bindings thread claims in `/logic` to code in `/src` and evidence in `/evidence`. Dead-end nodes (×) in the exploration graph preserve failure modes so no agent re-walks them.*
 
-### Key design principles
+**Key structural principles**
 
-- **Progressive disclosure** — `PAPER.md` (~200 tokens) tells agents whether the artifact is relevant. Deeper files load on demand.
-- **Cross-layer binding** — Claims reference experiments, experiments reference evidence, heuristics reference code. Everything is linked.
-- **Dead ends preserved** — Failed approaches and rejected alternatives are first-class nodes in the exploration graph, preventing agents from rediscovering known failures.
-- **Provenance tracking** — Every entry carries a tag (`user`, `ai-suggested`, `ai-executed`, `user-revised`) distinguishing human-confirmed facts from AI inferences.
-
----
-
-## Skills
-
-This repository ships three open-source agent skills that work with ARA:
-
-| Skill | Description | Invoke |
-|-------|-------------|--------|
-| **[compiler](skills/compiler/)** | Compiles papers, repos, notes, or any research input into a structured ARA artifact | `/compiler <path>` |
-| **[research-manager](skills/research-manager/)** | End-of-turn recorder that captures decisions, experiments, and dead ends with provenance tags | `/research-manager` |
-| **[rigor-reviewer](skills/rigor-reviewer/)** | ARA Seal Level 2 semantic review — scores six dimensions of epistemic rigor | `/rigor-reviewer <artifact_dir>` |
-
-### Compiler
-
-<p align="center">
-  <img src="docs/figures/fig_compiler_v2.png" alt="ARA Compiler" width="90%"/>
-</p>
-
-Converts ANY research input into a complete ARA artifact. Accepts PDFs, GitHub repos, experiment logs, code directories, raw notes, or combinations. Follows a 4-stage epistemic protocol:
-
-1. **Semantic Deconstruction** — extract raw knowledge atoms
-2. **Cognitive Mapping** — map to claims, concepts, experiments
-3. **Physical Stubbing** — generate configs and code stubs
-4. **Exploration Graph Extraction** — reconstruct the research DAG
-
-```
-/compiler path/to/paper.pdf
-/compiler https://github.com/org/repo
-/compiler path/to/paper.pdf path/to/code/ --output ./my-artifact/
-```
-
-See [skills/compiler/SKILL.md](skills/compiler/SKILL.md) for the full specification.
-
-### Research Manager (Live Capture)
-
-<p align="center">
-  <img src="docs/figures/fig_lrm_lifecycle_v5_attempt2.png" alt="Research Manager lifecycle" width="90%"/>
-</p>
-
-An end-of-turn recorder that runs after every turn and writes research-significant events into the `ara/` artifact via a three-stage pipeline (Context Harvester → Event Router → Maturity Tracker). Trace events (decisions, experiments, dead ends, pivots) are recorded immediately; knowledge events (claims, heuristics, concepts, constraints) are staged and crystallize only on closure signals — so research knowledge accrues as a side-effect of ordinary development.
-
-```
-/research-manager
-```
-
-See [skills/research-manager/SKILL.md](skills/research-manager/SKILL.md) for the full specification.
-
-### Rigor Reviewer (ARA Seal Level 2)
-
-A semantic epistemic review that assumes Level 1 structural validation has passed, then scores six dimensions — evidence relevance, falsifiability, scope calibration, and more — producing a `level2_report.json` with severity-ranked findings and an overall recommendation.
-
-```
-/rigor-reviewer path/to/artifact/
-```
-
-See [skills/rigor-reviewer/SKILL.md](skills/rigor-reviewer/SKILL.md) for the full specification.
+- **Progressive disclosure** — `PAPER.md` (~200 tokens) tells an agent whether the artifact is relevant; deeper files load on demand.
+- **Cross-layer binding** — claims reference experiments, experiments reference evidence, heuristics reference code. Everything resolves.
+- **Dead ends preserved** — failed approaches and rejected alternatives are first-class nodes in the exploration graph, not noise to drop.
+- **Provenance tracking** — every entry is tagged (`user`, `ai-suggested`, `ai-executed`, `user-revised`), distinguishing human-confirmed facts from AI inferences.
 
 ---
 
-## Install
+## Why it works
 
-```bash
-npx @ara-commons/ara-skills
-```
+The supervision gap is not hand-waving — it shows up as measurable cost. Across benchmarks, an ARA beats a strong PDF + repo baseline on the three things agents do with research (understand, reproduce, extend), most dramatically on recovering the *failure* knowledge a narrative drops. For the full argument — the two structural taxes, the benchmark results, and the case for agent-native research — read the writeup:
 
-Auto-detects Claude Code, Cursor, Gemini CLI, OpenCode, Codex, and Hermes, then prompts for skills, agents, and install scope (global vs. local).
+**→ [The Last Human-Written Paper: Agent-Native Research Artifacts](https://amberljc.github.io/blog/2026-04-24-the-last-human-written-paper.html)**
 
-Full CLI reference: [`packages/ara-skills/`](packages/ara-skills/).
+This paper practices what it proposes — its own ARA lives at [`docs/the-ara-of-ara`](docs/the-ara-of-ara).
 
 ---
 
@@ -160,13 +144,14 @@ These skills follow the [Agent Skills open standard](https://agentskills.io/spec
 If you use ARA in your research, please cite:
 
 ```bibtex
-@article{ara2026,
-  title        = {The Last Human-Written Paper: Agent-Native Research Artifacts},
-  author       = {Liu, Jiachen and Pei, Jiaxin and Huang, Jintao and Si, Chenglei and Qu, Ao and Tang, Xiangru and Lu, Runyu and Chen, Lichang and Bai, Xiaoyan and Zheng, Haizhong and Chen, Carl and Chen, Zhiyang and Ye, Haojie and Fu, Yujuan and He, Zexue and Jin, Zijian and Zhang, Zhenyu and Sun, Shangquan and Harmon, Maestro and Wang, John Dianzhuo and Zeng, Jianqiao and Sun, Jiachen and Wu, Mingyuan and Zhou, Baoyu and You, Chenyu and Lu, Shijian and Qiu, Yiming and Lai, Fan and Yuan, Yuan and Li, Yao and Hong, Junyuan and Zhu, Ruihao and Chen, Beidi and Pentland, Alex and Chen, Ang and Chowdhury, Mosharaf and Zhang, Zechen},
-  year         = {2026},
-  eprint       = {2604.24658},
-  archivePrefix= {arXiv},
-  url          = {https://arxiv.org/abs/2604.24658}
+@misc{liu2026humanwrittenpaperagentnativeresearch,
+      title={The Last Human-Written Paper: Agent-Native Research Artifacts},
+      author={Jiachen Liu and Jiaxin Pei and Jintao Huang and Chenglei Si and Ao Qu and Xiangru Tang and Runyu Lu and Lichang Chen and Xiaoyan Bai and Haizhong Zheng and Carl Chen and Zhiyang Chen and Haojie Ye and Yujuan Fu and Zexue He and Zijian Jin and Zhenyu Zhang and Shangquan Sun and Maestro Harmon and John Dianzhuo Wang and Jianqiao Zeng and Jiachen Sun and Mingyuan Wu and Baoyu Zhou and Chenyu You and Shijian Lu and Yiming Qiu and Fan Lai and Yuan Yuan and Yao Li and Junyuan Hong and Ruihao Zhu and Beidi Chen and Alex Pentland and Ang Chen and Mosharaf Chowdhury and Zechen Zhang},
+      year={2026},
+      eprint={2604.24658},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2604.24658},
 }
 ```
 
@@ -174,7 +159,7 @@ If you use ARA in your research, please cite:
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add or improve skills, or contribute ARA artifacts to `ara-output/`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add or improve skills.
 
 ## License
 

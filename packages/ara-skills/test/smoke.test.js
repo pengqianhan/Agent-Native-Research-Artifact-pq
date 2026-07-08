@@ -6,11 +6,18 @@ import path from 'node:path';
 
 import { listSkills } from '../src/skills.js';
 import { SUPPORTED_AGENTS, getAgentById } from '../src/agents.js';
-import { install, uninstall, listInstalled } from '../src/installer.js';
+import { install, uninstall, update, listInstalled } from '../src/installer.js';
 
-test('listSkills discovers the three ARA skills', () => {
+test('listSkills discovers the six ARA skills', () => {
   const ids = listSkills().map((s) => s.id).sort();
-  assert.deepEqual(ids, ['compiler', 'research-manager', 'rigor-reviewer']);
+  assert.deepEqual(ids, [
+    'compiler',
+    'research-foresight',
+    'research-manager',
+    'research-visualizer',
+    'rigor-reviewer',
+    'submit-ara',
+  ]);
 });
 
 test('agent registry exposes expected ids', () => {
@@ -49,6 +56,56 @@ test('install + uninstall cycle (local, tmp dir)', () => {
     });
     assert.equal(rm.results[0].status, 'removed');
     assert.ok(!fs.existsSync(installed));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('update reconciles a partial install to the full bundled skill set', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-skills-update-'));
+  try {
+    // Start with only one skill installed.
+    install({ agentId: 'claude-code', skillIds: ['compiler'], local: true, cwd: tmp, force: true, quiet: true });
+
+    // update() must pull in skills added to the package since that install.
+    update({ agentId: 'claude-code', local: true, cwd: tmp, quiet: true });
+
+    const skillsDir = path.join(tmp, '.claude/skills');
+    for (const id of listSkills().map((s) => s.id)) {
+      assert.ok(
+        fs.existsSync(path.join(skillsDir, id, 'SKILL.md')),
+        `update should have installed "${id}"`
+      );
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('lock file updatedAt advances on reinstall', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ara-skills-lock-'));
+  try {
+    const opts = {
+      agentId: 'claude-code',
+      skillIds: ['compiler'],
+      local: true,
+      cwd: tmp,
+      force: true,
+      quiet: true,
+    };
+    const lockPath = path.join(tmp, '.claude/skills/.ara-skills.json');
+
+    install(opts);
+    const first = JSON.parse(fs.readFileSync(lockPath, 'utf8')).updatedAt;
+
+    await new Promise((r) => setTimeout(r, 10));
+    install(opts);
+    const second = JSON.parse(fs.readFileSync(lockPath, 'utf8')).updatedAt;
+
+    assert.ok(
+      new Date(second) > new Date(first),
+      `updatedAt should advance on reinstall (was ${first}, still ${second})`
+    );
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

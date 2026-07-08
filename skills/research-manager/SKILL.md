@@ -15,7 +15,7 @@ argument-hint: "[optional: hint about what happened this turn]"
 allowed-tools: Read, Write, Edit, Glob, Grep
 metadata:
   author: ara-commons
-  version: "2.2.0"
+  version: "2.4.0"
   tags: [research, process-recording, provenance, progressive-crystallization, knowledge-management]
 ---
 
@@ -128,14 +128,34 @@ When a signal fires for `O{XX}`:
 
 1. Read O{XX}'s `content`, `context`, `potential_type`, `provenance`, `bound_to`.
 2. Allocate the next ID for the target layer (read the target file first).
-3. Construct a typed entry using the schema (see Schemas below). Carry forward
-   `provenance`. Verbal-affirmation upgrades `ai-suggested` → `user-revised` (or `user` if
+3. Construct a typed entry using the schema (see Schemas below). **Before any number enters a
+   `Statement`/`Rationale`, ground it per "Number grounding" below — open the source, copy the
+   matched line verbatim into `Sources`, then write the number as a copy of that quote.** Carry
+   forward `provenance`. Verbal-affirmation upgrades `ai-suggested` → `user-revised` (or `user` if
    reproduced verbatim). The other three signals do **not** upgrade provenance.
 4. Add fields: `Crystallized via: <signal>`, `From staging: O{XX}`.
 5. Establish forensic bindings (claim→proof, heuristic→code, decision→evidence). Use
    `[pending]` + TODO if a binding cannot be made now.
 6. Update O{XX}: `promoted: true`, `promoted_to: <layer>:<id>`, `crystallized_via: <signal>`.
    **Do not delete the observation** — the trail from raw to typed is part of the record.
+
+#### Number grounding (claims & heuristics)
+
+Every load-bearing number in a `Statement` (or a heuristic's `Rationale`/`Sensitivity`/`Bounds`)
+is grounded the way code is — transcribed from an open source, never written from memory:
+
+1. **Open before you write.** Before the number enters the prose, open its source and copy the
+   matched line *verbatim* into `Sources` (`<value> ← <source ref> «matched line» [input|result]`).
+   The number you then write in the prose is a copy of the value inside that quote — not a value
+   recalled and back-cited. An entry with a bare path and no «quote» is invalid.
+2. **Input vs result.** Tag each entry `[input]` (a value you set — cite the source that defines it)
+   or `[result]` (a value the run produced — cite the log/output that reports it). Don't cite a
+   measured outcome to the config meant to produce it, or vice versa.
+3. **No inheritance.** Re-open *this* claim's own source for every number; a value shared with a
+   dependency claim is re-verified here, never copied from the dependency's wording.
+4. **`[pending]` beats a guess.** Can't open or locate a source this turn? Write
+   `<value> ← [pending: what's missing]`. An unverified-but-plausible path is fabrication and is
+   worse than `[pending]`.
 
 #### Contradiction trigger
 
@@ -164,9 +184,17 @@ entries — staged observations belong to Stage 3. (History lives in the trace; 
 1. **Status updates** — flip a claim's `Status` field when evidence warrants.
 2. **Content revisions** — rewrite a `Statement`, `Rationale`, or definition when new
    evidence narrows scope, terminology changed, or wording no longer matches what's
-   actually supported.
+   actually supported. Keep `Statement` a generalized mechanism/relationship and sharpen
+   `Conditions` as the regime becomes clearer; new run numbers update `Proof`/`evidence`,
+   never the Statement. A rewrite re-grounds every number it now contains (Number grounding);
+   any changed value gets its own fresh `Sources` «quote», never a carried-over one.
 3. **Structural changes** — split a claim into two, merge duplicates, repair
-   dependencies, rename ids when concepts are renamed.
+   dependencies, rename ids when concepts are renamed. Also **generalize**: when several
+   crystallized claims are together evidence for a more general relationship none states
+   alone, author a new claim whose `Dependencies` are those narrower claims and whose
+   `Proof` spans their evidence — keep the narrower claims in place; the new claim sits
+   above them, not instead of them (only when a signal this turn makes the relationship
+   evident — never a routine sweep).
 4. **Consistency pass** — scan for broken cross-references (claim cites C05 which no
    longer exists), terminology mismatch with `concepts.md`, dependency loops.
 
@@ -236,6 +264,8 @@ When a signal fires for entry `E` (claim, heuristic, or concept):
      new id for the spin-off, update all cross-references.
    - **Merge**: keep the lower id, mark the higher id as `withdrawn` with
      `Merged into: C{XX}`, redirect cross-references.
+   - **Generalize**: allocate a new id for the more general claim, set its `Dependencies`
+     to the narrower claims, and leave those claims in place (they remain its grounding).
 6. **Record full before/after in today's session record** under `logic_revisions:`
    (see schema below). This is the ONLY place the prior wording is preserved — the
    logic file does not keep it.
@@ -313,6 +343,12 @@ ara/
 
 Nested DAG. Each node may have `children:`. Use `also_depends_on: [N{XX}]` for cross-edges.
 
+The tree's shape stays recoverable from a flat append log through two fields you already write: mark
+each level/phase **boundary** as a `pivot` (or `question`) node (it opens a new branch), and list what
+a node builds on in `also_depends_on`. Only when a node resumes an **earlier** branch — rather than
+continuing the step right before it — add an explicit `parent: N{XX}` to point back; in the common
+case its place is already implied and no extra field is needed.
+
 ```yaml
 tree:
   - id: N01
@@ -333,6 +369,8 @@ tree:
     to: ""            # pivot
     trigger: ""       # pivot
     status: open | resolved | unresolved   # unresolved used for contradiction-decision nodes
+    also_depends_on: []  # cross-edges (ids) — what this node builds on
+    parent: N{XX}        # OPTIONAL — only to point back to an earlier branch; omit when implied
     children:
       - { ... }
 ```
@@ -340,16 +378,33 @@ tree:
 ### Claim (`logic/claims.md`) — crystallized only
 
 ```markdown
-## C{XX}: {title}
-- **Statement**: {current falsifiable assertion}
+## C{XX}: {generalized title — the takeaway, not a recipe name}
+- **Statement**: {the generalized, mechanistic conclusion; subject = a mechanism/relationship, never a named recipe; carries NO run numbers}
+- **Conditions**: {under what conditions it holds; the regime; the known untested boundary}
+- **Sources**: [{one entry per load-bearing number in the claim (now in `Conditions`/`Proof`): `<value> ← <file:line | trace-node:field> «verbatim line copied from source» [input|result]`, or `<value> ← [pending: reason]`}]   # see "Number grounding"; a bare path with no «quote» is invalid
 - **Status**: hypothesis | untested | testing | supported | weakened | refuted | withdrawn
 - **Provenance**: user | ai-suggested | user-revised
-- **Falsification criteria**: {what would disprove this}
-- **Proof**: [{evidence refs or "pending"}]
+- **Falsification**: {a concrete observation that would disprove it — for a mechanism claim, about the system/world; for a methodological/regime claim, about the benchmark's behavior. NOT a tautology or a re-run of the same gate ("if the recipe fails the gate")}
+- **Proof**: [{evidence refs (→ evidence/) or "pending"; run numbers/IDs/scores live HERE, not in Statement}]
 - **Dependencies**: [C{YY}, ...]
 - **Tags**: {comma-separated}
 - **Last revised**: YYYY-MM-DD (turn-id)   # pointer back to the trace; absent until first revision
 ```
+
+**The Statement is the generalized conclusion the evidence supports — a mechanism or relationship,
+not a restatement of run numbers.** What keeps it falsifiable and honest is `Conditions` (the regime
+it holds in + the untested boundary) plus a `Falsification`, not a narrowed sentence. Numbers (run
+IDs, n, scores, step counts) belong in `Proof` → `evidence/` (grounded per Number grounding), never
+in `Statement`. `Conditions` is mandatory: a generalized Statement with no Conditions is an unbounded
+slogan.
+
+**Calibrate the Statement to what the evidence actually separates.** Do not assert a distinction the
+design cannot disentangle (confounded factors — e.g. matrix "shape" vs "role" when they co-vary), or
+a law from a single instance. When that's the case, hedge in the Statement itself — name the
+unseparated factors together, or say "shown once here" — rather than only burying it in `Conditions`.
+`Conditions` bounds *where* the claim applies; it is not a license for the Statement's verb to
+over-reach. The Statement/Conditions may be sharpened on a later turn (Stage 4 content revision) as
+the mechanism becomes clearer — no new closure signal is needed.
 
 Current-state snapshot only — no prior statements, no `From staging`/`Crystallized via`
 notes. Crystallization and every edit are recorded in the trace (`trace/sessions/…` under
@@ -362,6 +417,7 @@ marker, not a resting state — see Stage 4.
 ```markdown
 ## H{XX}: {title}
 - **Rationale**: {current best explanation of why this works}
+- **Sources**: [{one entry per load-bearing number in `Rationale`/`Sensitivity`/`Bounds`, same format as claims — see "Number grounding"}]
 - **Status**: active | weakened | retired
 - **Provenance**: user | ai-suggested | user-revised
 - **Sensitivity**: low | medium | high | unknown   # "unknown" until the turn establishes it — never guess

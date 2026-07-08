@@ -19,18 +19,21 @@ logic/
                                     #   study_design / formalization / results / proofs /
                                     #   design / heuristics … — whatever fits THIS work
   related_work.md                   # ✓ Typed dependency graph (RDO)
-src/
+src/                                # the CODEBASE (code in ANY language — never judged by a .py suffix)
   environment.md                    # ✓ Data/software/hardware/protocols/seeds
+  artifacts.md                      # as warranted: pointer index to the codebase (every script/config/module)
   configs/                          # as warranted: hyperparameters / inference / deployment
-  execution/{module}.py             # as warranted: grounded code stub (or absent — see below)
+  execution/{module}.{ext}          # as warranted: transcribed/grounded code, any language (or absent — see below)
   prompts/, ...                     # as warranted: prompt templates, etc.
 data/                               # as warranted: dataset.md + preprocessing.md
 trace/
   exploration_tree.yaml             # ✓ Research DAG: nested YAML tree with typed nodes
-evidence/
+evidence/                           # derived + observed: diffs, run records, results, logs, tables, figures
   README.md                         # ✓ Index mapping every evidence file to claims
   tables/                           # ✓ every numbered Table: tableN.md + tableN.png
   figures/                          # ✓ every numbered Figure: figureN.md + figureN.png
+  results/                          # as warranted: per-node run records (run tables: run_id, params, metrics, export_id)
+  logs/                             # as warranted: log_pointers.md — direct per-run log pointers (by export_id)
   proofs/                           # as warranted: derivations / proofs
 rubric/requirements.md              # (Only if a rubric is provided)
 ```
@@ -159,20 +162,51 @@ Rule: if a filename includes a source label such as `table3` or `figure4`, it sh
 
 Each claim MUST have ALL fields:
 ```markdown
-## C{NN}: {Short title}
-- **Statement**: {Precise, falsifiable assertion}
+## C{NN}: {generalized title — the takeaway, not a recipe/result name}
+- **Statement**: {the generalized, mechanistic conclusion the evidence supports; subject = a mechanism/relationship, never a named recipe; carries NO run numbers}
+- **Conditions**: {under what conditions it holds; the regime; the known untested boundary}
 - **Status**: {hypothesis|supported|refuted}
-- **Falsification criteria**: {What would disprove this}
+- **Falsification criteria**: {a concrete observation that would disprove it — for a mechanism claim, about the system/world; for a methodological/regime claim, about the benchmark's behavior. Not a tautology or a re-run of the same gate}
 - **Proof**: [{experiment IDs: E01, E02}]
-- **Evidence basis**: {What the cited evidence directly shows}
-- **Interpretation**: {Optional broader reading that should not be confused with the raw evidence}
-- **Dependencies**: {other claim IDs, if any}
+- **Evidence basis**: {what the cited evidence shows — point to it; do NOT restate run numbers in the Statement}
+- **Dependencies**: {claim IDs this one rests on — the narrower claims a more general claim draws on, or a claim it corrects/refines; not mere shared setup; omit if it rests only on its own evidence}
 - **Tags**: {comma-separated keywords}
 ```
 
 Proof MUST reference experiment IDs from experiments.md.
 Each proofed experiment should in turn be backed by evidence files whose rows or measurements actually match the claim being asserted.
-`Statement` should stay at the strongest level directly supported by the cited evidence. Use `Interpretation` for broader synthesis.
+`Statement` is the **generalized conclusion the evidence supports** — a mechanism or relationship,
+not a restatement of run numbers. The claim is kept falsifiable and honest by `Conditions` (the
+regime it holds in + the untested boundary) and a `Falsification criteria`, not by narrowing the
+sentence to a single measured value. Numbers (n, scores, step counts, run IDs) live in the evidence
+layer and are reached via `Proof`/`Evidence basis`, never pasted into `Statement`. `Conditions` is
+mandatory: a generalized Statement with no Conditions is an unbounded slogan.
+
+**Distill the mechanism; bound the reach.** Before writing a `Statement`, ask what the result
+*reveals* — the mechanism or relationship a reader would reuse — and state that; the recipe and its
+numbers are the evidence for it, not the claim, and never its subject. A single instance still
+licenses a mechanism `Statement`; what is forbidden is extrapolating it into a universal law beyond
+its regime, or asserting a distinction the design cannot disentangle. Put that boundary in
+`Conditions` — it bounds *where* the claim holds and is not a license for the verb to over-reach.
+`Conditions` carries the limits so the `Statement` can carry the mechanism.
+
+**A claim's evidence may be one result or several read together.** Most claims distill what a single
+result reveals; but where several experiments together reveal a relationship none shows alone —
+whether they agree on it, or differ in a way that itself reveals what bounds or explains the
+difference — that relationship is the claim. Write it as an ordinary `## C` block whose `Proof` lists
+every experiment it draws on and whose `Dependencies` names the narrower claims it rests on; the same
+distill-the-mechanism, bound-the-reach discipline applies. State the most general relationship the
+evidence supports — bounded by `Conditions`, never asserted past what those experiments jointly show —
+rather than settling for one claim per experiment. A claim need not be about the object under study:
+a reusable relationship the work itself exposes, including in how it was run, is worth a claim.
+
+**The attribution trap (the most common miss).** An ablation / leave-one-out that shows *which*
+components dominate is the *evidence*, not the claim. A Statement that merely names the load-bearing
+vs decorative components passes the no-numbers gate but is still a league table of *this* system.
+Apply the **name-deletion test**: strike your system's component names from the Statement — if
+nothing a stranger working on a different stack could reuse survives, you wrote attribution. State
+instead what the ranking reveals about the *class* of system; the named components and their deltas
+live in `Evidence basis`, reached via `Proof`.
 
 ---
 
@@ -192,11 +226,15 @@ borrowed terms to reach 5 (Rule 14). One section per concept:
 
 ## logic/experiments.md
 
-≥3 experiments. Declarative plans, NOT scripts. NO exact numerical results.
+≥3 experiments. Declarative plans, NOT scripts. NO exact numerical results. Experiments and claims
+are **many-to-many**: one experiment may verify several claims, and a claim that generalises across
+runs lists every experiment it draws on in its `Proof` — do not force a 1:1 claim↔experiment ledger.
 
 ```markdown
 ## E{NN}: {Short title}
-- **Verifies**: {claim IDs, e.g., C01, C02}
+- **Verifies**: {claim IDs this run bears on — may be several}
+- **Evidence**: {evidence file(s) where this run's results are recorded — `evidence/…`; "pending" if not yet filed}
+- **Run**: {what produced this result — a `src/execution/` file (or other `src/` artifact) when captured, else a link/ref into the source repo or run database; give it for EVERY experiment, including failed or ablated runs}
 - **Setup**:
   - Model: {model name and size}
   - Hardware: {GPU type, count, memory}
@@ -286,22 +324,41 @@ field format:
 
 ## src/execution/{module}.py  (when the work warrants it — grounded or absent)
 
-Present only when the source provides **concrete code-shaped content**: actual repo code, or
-explicit pseudocode/equations the paper prints. The stub captures the **novel mechanism** and must
-be grounded — never fabricated.
+Capture here is the **fallback, not the default**: transcribe code into `src/execution/` only when it
+would otherwise be **lost** — it exists solely inside the paper, or its source is not externally
+persisted. When the work's code/runs **persist in a linkable external store** (a repo, a run
+database), do NOT copy them here — index them comprehensively in `src/artifacts.md` (see below). When
+capture IS the call: actual repo code → capture real runnable files in native form (transcribed); only
+pseudocode/equations the paper prints → a reconstructed stub of the **novel mechanism**. Either way it
+must be grounded — never fabricated.
+
+When the input is a run database / repo of many experiment runs, index it **comprehensively** in
+`src/artifacts.md`: a link for **every** run and artifact (the per-run logs — e.g. a `runs.jsonl`
+already indexes each — plus every config, candidate, log, and script), nothing aggregated into a vague
+bucket and nothing copied. Each experiment's `Run` field points at the relevant entries. A lossy
+subset — only the winning run, or runs collapsed into a single directory link — is the failure.
 
 Every file declares its grounding on the first line:
 ```python
 # Grounding: transcribed   — adapted from repo code; cite file:line in docstrings
 # Grounding: reconstructed — from explicit paper pseudocode/equations; cite §/eq
 ```
-Contents:
+Contents depend on the grounding:
+
+**`transcribed` (a real repo file is provided)** — copy it faithfully in native form: full function
+bodies, the file's own imports (third-party deps included), and its real scaffolding (CLI/argparse,
+logging, entrypoints) all kept as in the repo. Do NOT replace working code with
+`NotImplementedError`, strip plumbing, or reduce to signatures-only — that mutates the artifact and
+breaks the cited `file:line`. Add only the `# Grounding` line and source-citing docstrings; otherwise
+leave the file as it is in the repo.
+
+**`reconstructed` (only pseudocode/equations exist)** — build a minimal stub of the novel mechanism:
 - Typed function signatures using ONLY names/types the source states
-- Docstrings that cite the source (`§4.2`, `Eq. 3`, `repo: model.py:88`) — not paraphrases of this skill
+- Docstrings that cite the source (`§4.2`, `Eq. 3`) — not paraphrases of this skill
 - Implementation logic ONLY where the source provides it; everything unspecified stays
   `raise NotImplementedError("Not specified in paper")` — never plausible filler
-- NO scaffolding (no argparse, logging, distributed wrappers)
-- Import only standard libraries + the field's core stack (torch/numpy, pandas/statsmodels, etc.)
+- NO scaffolding (no argparse, logging, distributed wrappers); import only standard libraries + the
+  field's core stack (torch/numpy, pandas/statsmodels, etc.)
 
 Hard rule: do not invent API names, function bodies, constants, or hyperparameters. **If the paper
 describes the method only in prose (no code, no printed pseudocode), do NOT write a `.py` stub or
@@ -309,11 +366,20 @@ pseudo-code — that information already lives in `logic/solution/`, and re-enco
 duplicates it.** A concrete artifact that IS raw "code" — e.g. a prompt or template — is different:
 store it verbatim in `src/prompts/`, don't paraphrase it. A hollow invented API is a hallucination.
 
-## src/artifacts.md  (when the implementation is not a `.py` stub)
+## src/artifacts.md  (the CODEBASE pointer index — code only, any language)
 
-`src/` must still represent the implementation. When the deliverable is a released tool, library,
-skill/specification, system, benchmark, or dataset rather than a code stub, describe the **real**
-artifacts here — grounded in the actual repo/files when a repo is provided. One block per artifact:
+`src/artifacts.md` is the **pointer index to the experiment's codebase** — the *code*: every script,
+config, and module, in **any language** (judged by content, never by a `.py` suffix). When the codebase
+persists in a linkable store (a directory of script variants, a released/versioned repo), point at every
+code artifact, grounded in the real files, nothing aggregated into a vague bucket and nothing copied.
+**Run records do NOT belong here** — per-run logs, metrics, and run tables are evidence
+(`evidence/results/`, `evidence/logs/log_pointers.md`), linked straight from trace/claims, not indexed in
+`artifacts.md`. One block (or row) per **code** artifact:
+
+**Capture is the fallback, not the default.** Transcribe a file into `src/execution/` only when it
+would otherwise be **lost** — code that lives solely inside the paper, or a source not externally
+persisted. When the source persists and is linkable, point to it here; copying a lossy subset (only
+the winner, or files collapsed into a single directory link) is the failure.
 
 ```markdown
 ## {Artifact name}
@@ -358,6 +424,34 @@ Reproducibility for any field. For purely analytical work, state so explicitly.
 
 ## Proof
 {proof sketch or full derivation}
+```
+
+---
+
+## evidence/results/{node-or-name}.md  (run records — the outputs of running the code)
+
+Per-experiment **run records**: the run table(s) a node produced. **This is where runs live**, not in
+`src/artifacts.md`. One file per experiment node (or per result group):
+
+```markdown
+# {Node/result}: {short description}
+- **Trace node**: N22
+- **Claim**: C04
+
+| run_id | {params…} | metric | export_id |
+|--------|-----------|--------|-----------|
+| …      | …         | …      | …         |
+```
+
+## evidence/logs/log_pointers.md  (direct per-run log pointers)
+
+A single index of **direct pointers to each run's log**, grouped by node — `<store>/<export_id>/<log>`
+(e.g. `train.log`, or the field's equivalent). Pointer-resolution only; do not transcribe logs:
+
+```markdown
+## N22: WD sweep (C04)
+- `data/train/00023-…/train.log`   — winning run
+- packet: v1-008
 ```
 
 ---
@@ -414,6 +508,8 @@ tree:
     source_refs: ["Table 2", "§4.1"]   # recommended for explicit nodes
     title: "{...}"
     description: "{...}"
+    # OPTIONAL enrichment (Research Visualizer; omit when absent):
+    # thinking: "{verbatim agent deliberation — why it did/branched}"
 ```
 
 Rules:
